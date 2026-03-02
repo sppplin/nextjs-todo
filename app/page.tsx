@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Plus, Trash2, CheckCircle2 } from "lucide-react";
 
 type Todo = {
   id: string;
@@ -23,7 +24,7 @@ export default function Home() {
   }, []);
 
   const addTodo = async () => {
-    if (!title) return;
+    if (!title.trim()) return;
 
     await fetch("/api/todos", {
       method: "POST",
@@ -53,46 +54,74 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center p-10">
-      <h1 className="text-3xl font-bold mb-6">Todo App</h1>
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
+      <div className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-8">
+        
+        <h1 className="text-3xl font-bold text-white mb-6 tracking-tight">
+          Premium Todo
+        </h1>
 
-      <div className="flex gap-2 mb-6">
-        <input
-          className="border px-3 py-2 rounded"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter todo..."
-        />
-        <button
-          onClick={addTodo}
-          className="bg-black text-white px-4 py-2 rounded"
-        >
-          Add
-        </button>
-      </div>
-
-      <div className="w-full max-w-md">
-        {todos.map((todo) => (
-          <div
-            key={todo.id}
-            className="flex justify-between items-center border p-3 mb-2 rounded"
+        {/* Input */}
+        <div className="flex gap-2 mb-6">
+          <input
+            className="flex-1 bg-white/10 border border-white/20 text-white px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="What needs to be done?"
+          />
+          <button
+            onClick={addTodo}
+            className="bg-indigo-600 hover:bg-indigo-700 transition text-white px-4 py-3 rounded-xl flex items-center justify-center"
           >
-            <span
-              onClick={() => toggleTodo(todo.id, todo.completed)}
-              className={`cursor-pointer ${
-                todo.completed ? "line-through text-gray-500" : ""
-              }`}
+            <Plus size={18} />
+          </button>
+        </div>
+
+        {/* Todo List */}
+        <div className="space-y-3">
+          {todos.length === 0 && (
+            <p className="text-gray-400 text-sm text-center">
+              No tasks yet. Add your first task.
+            </p>
+          )}
+
+          {todos.map((todo) => (
+            <div
+              key={todo.id}
+              className="flex items-center justify-between bg-white/10 border border-white/10 px-4 py-3 rounded-xl hover:bg-white/20 transition"
             >
-              {todo.title}
-            </span>
-            <button
-              onClick={() => deleteTodo(todo.id)}
-              className="text-red-500"
-            >
-              Delete
-            </button>
-          </div>
-        ))}
+              <div
+                onClick={() => toggleTodo(todo.id, todo.completed)}
+                className="flex items-center gap-3 cursor-pointer"
+              >
+                <CheckCircle2
+                  size={20}
+                  className={`${
+                    todo.completed
+                      ? "text-green-400"
+                      : "text-gray-400"
+                  }`}
+                />
+                <span
+                  className={`text-white ${
+                    todo.completed
+                      ? "line-through text-gray-400"
+                      : ""
+                  }`}
+                >
+                  {todo.title}
+                </span>
+              </div>
+
+              <button
+                onClick={() => deleteTodo(todo.id)}
+                className="text-red-400 hover:text-red-500 transition"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </main>
   );
