@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Plus,
+  Trash2,
+  CheckCircle2,
+  Moon,
+  Sun,
+  Pencil,
+} from "lucide-react";
+import { useTheme } from "next-themes";
 
 type Todo = {
   id: string;
@@ -12,11 +21,16 @@ type Todo = {
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const { theme, setTheme } = useTheme();
 
   const fetchTodos = async () => {
     const res = await fetch("/api/todos");
     const data = await res.json();
     setTodos(data);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -53,75 +67,140 @@ export default function Home() {
     fetchTodos();
   };
 
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
-      <div className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-8">
-        
-        <h1 className="text-3xl font-bold text-white mb-6 tracking-tight">
-          Premium Todo
-        </h1>
+  const updateTodo = async (id: string) => {
+    await fetch("/api/todos", {
+      method: "POST",
+      body: JSON.stringify({ id, title: editText }),
+    });
+    setEditingId(null);
+    fetchTodos();
+  };
 
-        {/* Input */}
+  const completedCount = todos.filter((t) => t.completed).length;
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-300 dark:from-slate-900 dark:to-slate-800 p-8 transition-all">
+      <div className="max-w-3xl mx-auto">
+
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              {completedCount} of {todos.length} tasks completed
+            </p>
+          </div>
+
+          <button
+            onClick={() =>
+              setTheme(theme === "dark" ? "light" : "dark")
+            }
+            className="p-2 rounded-lg bg-gray-200 dark:bg-slate-700"
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+        </div>
+
+        {/* Add Todo */}
         <div className="flex gap-2 mb-6">
           <input
-            className="flex-1 bg-white/10 border border-white/20 text-white px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="What needs to be done?"
+            placeholder="Add new task..."
+            className="flex-1 px-4 py-3 rounded-xl border dark:bg-slate-800"
           />
           <button
             onClick={addTodo}
-            className="bg-indigo-600 hover:bg-indigo-700 transition text-white px-4 py-3 rounded-xl flex items-center justify-center"
+            className="bg-indigo-600 text-white px-4 py-3 rounded-xl"
           >
             <Plus size={18} />
           </button>
         </div>
 
-        {/* Todo List */}
-        <div className="space-y-3">
-          {todos.length === 0 && (
-            <p className="text-gray-400 text-sm text-center">
-              No tasks yet. Add your first task.
-            </p>
-          )}
-
-          {todos.map((todo) => (
-            <div
-              key={todo.id}
-              className="flex items-center justify-between bg-white/10 border border-white/10 px-4 py-3 rounded-xl hover:bg-white/20 transition"
-            >
+        {/* Loading Skeleton */}
+        {loading && (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
               <div
-                onClick={() => toggleTodo(todo.id, todo.completed)}
-                className="flex items-center gap-3 cursor-pointer"
-              >
+                key={i}
+                className="h-12 rounded-xl bg-gray-300 dark:bg-slate-700 animate-pulse"
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && todos.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-gray-500 dark:text-gray-400">
+              🎉 You’re all caught up!
+            </p>
+          </div>
+        )}
+
+        {/* Todo List */}
+        <AnimatePresence>
+          {todos.map((todo) => (
+            <motion.div
+              key={todo.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl shadow mb-3"
+            >
+              <div className="flex items-center gap-3">
                 <CheckCircle2
                   size={20}
-                  className={`${
+                  onClick={() =>
+                    toggleTodo(todo.id, todo.completed)
+                  }
+                  className={
                     todo.completed
-                      ? "text-green-400"
-                      : "text-gray-400"
-                  }`}
+                      ? "text-green-500 cursor-pointer"
+                      : "text-gray-400 cursor-pointer"
+                  }
                 />
-                <span
-                  className={`text-white ${
-                    todo.completed
-                      ? "line-through text-gray-400"
-                      : ""
-                  }`}
-                >
-                  {todo.title}
-                </span>
+
+                {editingId === todo.id ? (
+                  <input
+                    value={editText}
+                    onChange={(e) =>
+                      setEditText(e.target.value)
+                    }
+                    onBlur={() => updateTodo(todo.id)}
+                    className="border px-2 py-1 rounded"
+                  />
+                ) : (
+                  <span
+                    className={
+                      todo.completed
+                        ? "line-through text-gray-400"
+                        : ""
+                    }
+                  >
+                    {todo.title}
+                  </span>
+                )}
               </div>
 
-              <button
-                onClick={() => deleteTodo(todo.id)}
-                className="text-red-400 hover:text-red-500 transition"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
+              <div className="flex gap-3">
+                <Pencil
+                  size={18}
+                  onClick={() => {
+                    setEditingId(todo.id);
+                    setEditText(todo.title);
+                  }}
+                  className="cursor-pointer text-blue-500"
+                />
+                <Trash2
+                  size={18}
+                  onClick={() => deleteTodo(todo.id)}
+                  className="cursor-pointer text-red-500"
+                />
+              </div>
+            </motion.div>
           ))}
-        </div>
+        </AnimatePresence>
       </div>
     </main>
   );
